@@ -1,0 +1,132 @@
+version: '3.8'
+
+services:
+  # Zookeeper - Required for Kafka
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - eda-chat-network
+
+  # Kafka Broker
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks:
+      - eda-chat-network
+
+  # Schema Registry
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.5.0
+    container_name: schema-registry
+    depends_on:
+      - kafka
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:29092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    networks:
+      - eda-chat-network
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - eda-chat-network
+
+  # PostgreSQL for Auth Service
+  auth-db:
+    image: postgres:15-alpine
+    container_name: auth-db
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+    networks:
+      - eda-chat-network
+
+  # PostgreSQL for Chat Service
+  chat-db:
+    image: postgres:15-alpine
+    container_name: chat-db
+    environment:
+      POSTGRES_DB: chat_db
+      POSTGRES_USER: chat_user
+      POSTGRES_PASSWORD: chat_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - chat-db-data:/var/lib/postgresql/data
+    networks:
+      - eda-chat-network
+
+  # PostgreSQL for Presence Service
+  presence-db:
+    image: postgres:15-alpine
+    container_name: presence-db
+    environment:
+      POSTGRES_DB: presence_db
+      POSTGRES_USER: presence_user
+      POSTGRES_PASSWORD: presence_password
+    ports:
+      - "5434:5432"
+    volumes:
+      - presence-db-data:/var/lib/postgresql/data
+    networks:
+      - eda-chat-network
+
+  # PostgreSQL for Notification Service
+  notification-db:
+    image: postgres:15-alpine
+    container_name: notification-db
+    environment:
+      POSTGRES_DB: notification_db
+      POSTGRES_USER: notification_user
+      POSTGRES_PASSWORD: notification_password
+    ports:
+      - "5435:5432"
+    volumes:
+      - notification-db-data:/var/lib/postgresql/data
+    networks:
+      - eda-chat-network
+
+volumes:
+  redis-data:
+  auth-db-data:
+  chat-db-data:
+  presence-db-data:
+  notification-db-data:
+
+networks:
+  eda-chat-network:
+    driver: bridge

@@ -1,0 +1,452 @@
+# Event-Driven Architecture Chat Microservice
+
+A scalable, event-driven chat application built with NestJS microservices, Kafka, Redis, PostgreSQL, and GraphQL.
+
+## 🏗️ Architecture Overview
+
+This project implements a microservices architecture following Event-Driven Design (EDD) principles:
+
+```
+┌─────────────┐
+│   Client    │
+└──────┬──────┘
+       │
+       │ GraphQL
+       ▼
+┌─────────────────────┐
+│  API Gateway        │ (Port 3000)
+│  (GraphQL)          │
+└──────┬──────────────┘
+       │
+       ├──────────────────┬────────────────┬────────────────┐
+       ▼                  ▼                ▼                ▼
+┌─────────────┐  ┌─────────────┐  ┌──────────────┐ ┌──────────────────┐
+│Auth Service │  │Chat Service │  │Presence      │ │Notification      │
+│  (Port 3001)│  │  (Port 3002)│  │Service       │ │Service           │
+│             │  │             │  │  (Port 3003) │ │  (Port 3004)     │
+└──────┬──────┘  └──────┬──────┘  └──────┬───────┘ └────────┬─────────┘
+       │                │                │                   │
+       ▼                ▼                ▼                   ▼
+┌─────────────┐  ┌─────────────┐  ┌──────────────┐ ┌──────────────────┐
+│  Auth DB    │  │  Chat DB    │  │Presence DB   │ │Notification DB   │
+│ PostgreSQL  │  │ PostgreSQL  │  │PostgreSQL    │ │PostgreSQL        │
+└─────────────┘  └─────────────┘  └──────────────┘ └──────────────────┘
+                        │
+                        └─────────► Kafka ◄──────────────┘
+                                      │
+                                      ├─► Schema Registry
+                                      │
+                                      └─► Redis (Cache & Presence)
+```
+
+## 📋 Sequence Flow
+
+1. **Authentication**: Client sends GraphQL request with JWT → API Gateway validates token via Auth Service
+2. **Message Creation**: Client sends message → Chat Service persists to DB
+3. **Event Publication**: Chat Service fetches schema from Registry → Publishes event to Kafka
+4. **Presence Update**: Presence Service updates user status in Redis
+5. **Event Consumption**: Notification Service consumes Kafka events
+6. **Notification Storage**: Notification Service stores in DB and caches in Redis
+7. **Client Notification**: Real-time push via WebSocket
+
+## 🚀 Services
+
+### 1. API Gateway (Port 3000)
+- **Technology**: NestJS + GraphQL (Apollo Server)
+- **Responsibilities**:
+  - GraphQL API endpoint for clients
+  - Request routing to microservices
+  - JWT validation
+  - WebSocket subscriptions for real-time updates
+
+### 2. Auth Service (Port 3001)
+- **Technology**: NestJS + TypeORM + PostgreSQL + JWT
+- **Responsibilities**:
+  - User registration and login
+  - JWT token generation and validation
+  - Refresh token management
+  - Password hashing with bcrypt
+
+### 3. Chat Service (Port 3002)
+- **Technology**: NestJS + TypeORM + PostgreSQL + Kafka
+- **Responsibilities**:
+  - Message creation and retrieval
+  - Conversation management
+  - Publish message events to Kafka
+  - Schema validation with Schema Registry
+
+### 4. Presence Service (Port 3003)
+- **Technology**: NestJS + Redis + TypeORM + PostgreSQL
+- **Responsibilities**:
+  - Track user online/offline status
+  - Real-time presence updates
+  - Redis caching for fast lookups
+
+### 5. Notification Service (Port 3004)
+- **Technology**: NestJS + Kafka + Redis + TypeORM + PostgreSQL
+- **Responsibilities**:
+  - Consume Kafka message events
+  - Create and store notifications
+  - Fan-out notifications via Redis
+  - WebSocket push notifications
+
+## 🛠️ Technology Stack
+
+- **Framework**: NestJS
+- **API**: GraphQL (Apollo Server)
+- **Message Broker**: Apache Kafka + Zookeeper
+- **Schema Registry**: Confluent Schema Registry
+- **Cache & Pub/Sub**: Redis
+- **Database**: PostgreSQL (4 separate databases)
+- **Authentication**: JWT + Passport
+- **Validation**: Class-validator, Class-transformer
+- **ORM**: TypeORM
+
+## 📦 Prerequisites
+
+- Node.js >= 18.x
+- npm >= 9.x
+- Docker & Docker Compose
+
+## 🚀 Getting Started
+
+### 1. Start Infrastructure (Kafka, Redis, PostgreSQL)
+
+```bash
+docker-compose up -d
+```
+
+This will start:
+- Zookeeper (Port 2181)
+- Kafka (Ports 9092, 29092)
+- Schema Registry (Port 8081)
+- Redis (Port 6379)
+- PostgreSQL databases for each service (Ports 5432-5435)
+
+### 2. Install Dependencies
+
+```bash
+# API Gateway
+cd api-gateway && npm install
+
+# Auth Service
+cd ../auth-service && npm install
+
+# Chat Service
+cd ../chat-service && npm install
+
+# Presence Service
+cd ../presence-service && npm install
+
+# Notification Service
+cd ../notification-service && npm install
+
+# Shared Types (Optional)
+cd ../shared && npm install && npm run build
+```
+
+### 3. Configure Environment Variables
+
+Each service has a `.env.example` file. Copy it to `.env` and update if needed:
+
+```bash
+# API Gateway
+cp api-gateway/.env.example api-gateway/.env
+
+# Auth Service
+cp auth-service/.env.example auth-service/.env
+
+# Chat Service (when configured)
+cp chat-service/.env.example chat-service/.env
+
+# Presence Service (when configured)
+cp presence-service/.env.example presence-service/.env
+
+# Notification Service (when configured)
+cp notification-service/.env.example notification-service/.env
+```
+
+### 4. Start Services
+
+Open separate terminal windows for each service:
+
+```bash
+# Terminal 1 - Auth Service
+cd auth-service && npm run start:dev
+
+# Terminal 2 - Chat Service
+cd chat-service && npm run start:dev
+
+# Terminal 3 - Presence Service
+cd presence-service && npm run start:dev
+
+# Terminal 4 - Notification Service
+cd notification-service && npm run start:dev
+
+# Terminal 5 - API Gateway
+cd api-gateway && npm run start:dev
+```
+
+## 🧪 Testing the Application
+
+### Access GraphQL Playground
+
+Open your browser and navigate to:
+```
+http://localhost:3000/graphql
+```
+
+### Example GraphQL Queries
+
+**Register a User:**
+```graphql
+mutation {
+  register(input: {
+    email: "user@example.com"
+    username: "johndoe"
+    password: "password123"
+  }) {
+    accessToken
+    refreshToken
+    user {
+      userId
+      email
+      username
+    }
+  }
+}
+```
+
+**Login:**
+```graphql
+mutation {
+  login(input: {
+    email: "user@example.com"
+    password: "password123"
+  }) {
+    accessToken
+    refreshToken
+    user {
+      userId
+      email
+      username
+    }
+  }
+}
+```
+
+**Send a Message (Authenticated):**
+```graphql
+mutation {
+  sendMessage(input: {
+    receiverId: "receiver-user-id"
+    content: "Hello, World!"
+  }) {
+    id
+    content
+    senderId
+    receiverId
+    conversationId
+    createdAt
+  }
+}
+```
+
+**Update Presence Status:**
+```graphql
+mutation {
+  updatePresence(input: {
+    status: ONLINE
+  }) {
+    userId
+    status
+    lastSeenAt
+  }
+}
+```
+
+**Get Notifications:**
+```graphql
+query {
+  getNotifications(page: 1, limit: 20) {
+    data {
+      id
+      type
+      title
+      message
+      read
+      createdAt
+    }
+    total
+    page
+    totalPages
+  }
+}
+```
+
+### Set Authorization Header
+
+After login, copy the `accessToken` and add it to the HTTP Headers in GraphQL Playground:
+
+```json
+{
+  "Authorization": "Bearer YOUR_ACCESS_TOKEN_HERE"
+}
+```
+
+## 📁 Project Structure
+
+```
+EDA_Chat_Microservice/
+├── api-gateway/              # GraphQL API Gateway
+│   └── src/
+│       ├── auth/             # Auth GraphQL module
+│       ├── chat/             # Chat GraphQL module
+│       ├── presence/         # Presence GraphQL module
+│       ├── notification/     # Notification GraphQL module
+│       └── common/           # Guards, decorators
+├── auth-service/             # Authentication microservice
+│   └── src/
+│       ├── auth/             # Auth logic
+│       └── users/            # User management
+├── chat-service/             # Chat microservice
+│   └── src/
+│       ├── messages/         # Message handling
+│       ├── conversations/    # Conversation management
+│       └── kafka/            # Kafka producers
+├── presence-service/         # Presence tracking microservice
+│   └── src/
+│       ├── presence/         # Presence logic
+│       └── redis/            # Redis integration
+├── notification-service/     # Notification microservice
+│   └── src/
+│       ├── notifications/    # Notification handling
+│       └── kafka/            # Kafka consumers
+├── shared/                   # Shared types and schemas
+│   └── src/
+│       ├── types/            # TypeScript interfaces
+│       └── events/           # Kafka event schemas
+└── docker-compose.yml        # Infrastructure setup
+```
+
+## 🔒 Security
+
+- **JWT Authentication**: Secure token-based authentication
+- **Password Hashing**: bcrypt with salt rounds
+- **CORS**: Enabled for cross-origin requests
+- **Validation**: Input validation with class-validator
+- **Environment Variables**: Sensitive data in .env files (not committed)
+
+## 🔧 Development
+
+### Build Shared Types
+
+```bash
+cd shared
+npm run build
+```
+
+### Run Tests
+
+```bash
+# In each service directory
+npm run test
+```
+
+### Lint Code
+
+```bash
+npm run lint
+```
+
+## 📊 Monitoring
+
+### Check Kafka Topics
+
+```bash
+docker exec -it kafka kafka-topics --list --bootstrap-server localhost:9092
+```
+
+### Check Redis Keys
+
+```bash
+docker exec -it redis redis-cli KEYS '*'
+```
+
+### Check PostgreSQL Databases
+
+```bash
+# Auth DB
+docker exec -it auth-db psql -U auth_user -d auth_db
+
+# Chat DB
+docker exec -it chat-db psql -U chat_user -d chat_db
+```
+
+## 🚧 Roadmap
+
+- [ ] Complete Chat Service with Kafka integration
+- [ ] Complete Presence Service with Redis
+- [ ] Complete Notification Service with Kafka consumers
+- [ ] Add WebSocket support for real-time notifications
+- [ ] Implement message read receipts
+- [ ] Add file/image upload support
+- [ ] Implement message encryption
+- [ ] Add unit and e2e tests
+- [ ] Add Docker Compose for services
+- [ ] Add API documentation with Swagger
+- [ ] Implement rate limiting
+- [ ] Add monitoring with Prometheus & Grafana
+
+## 📝 Environment Variables
+
+### API Gateway
+```
+PORT=3000
+JWT_SECRET=your-secret-key
+AUTH_SERVICE_URL=http://localhost:3001
+CHAT_SERVICE_URL=http://localhost:3002
+PRESENCE_SERVICE_URL=http://localhost:3003
+NOTIFICATION_SERVICE_URL=http://localhost:3004
+```
+
+### Auth Service
+```
+PORT=3001
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=auth_user
+DB_PASSWORD=auth_password
+DB_NAME=auth_db
+JWT_SECRET=your-secret-key
+JWT_EXPIRATION=1h
+REFRESH_TOKEN_SECRET=your-refresh-secret
+REFRESH_TOKEN_EXPIRATION=7d
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+MIT
+
+## 👨‍💻 Author
+
+Your Name
+
+---
+
+**Note**: This is a development setup. For production, ensure to:
+- Use proper secret management
+- Set `synchronize: false` in TypeORM
+- Implement database migrations
+- Add proper logging and monitoring
+- Use environment-specific configurations
+- Implement rate limiting and security headers
+- Add health checks for all services

@@ -1,0 +1,33 @@
+{
+  "name": "eda-chat-microservice",
+  "version": "1.0.0",
+  "description": "Event-Driven Architecture Chat Application with NestJS Microservices",
+  "private": true,
+  "scripts": {
+    "install:all": "npm run install:api-gateway && npm run install:auth && npm run install:chat && npm run install:presence && npm run install:notification && npm run install:shared",
+    "install:api-gateway": "cd api-gateway && npm install",
+    "install:auth": "cd auth-service && npm install",
+    "install:chat": "cd chat-service && npm install",
+    "install:presence": "cd presence-service && npm install",
+    "install:notification": "cd notification-service && npm install",
+    "install:shared": "cd shared && npm install",
+    "build:shared": "cd shared && npm run build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:clean": "docker-compose down -v && docker system prune -f"
+  },
+  "keywords": [
+    "nestjs",
+    "microservices",
+    "event-driven",
+    "kafka",
+    "redis",
+    "graphql",
+    "postgresql",
+    "chat",
+    "websocket"
+  ],
+  "author": "",
+  "license": "MIT"
+}
