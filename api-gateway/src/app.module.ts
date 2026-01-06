@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
+import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -19,7 +20,10 @@ import { NotificationModule } from './notification/notification.module';
       driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
       sortSchema: true,
-      playground: true,
+      introspection: true,
+      playground: false,
+      csrfPrevention: false,
+      plugins: [ApolloServerPluginLandingPageLocalDefault()],
       context: ({ req, res }) => ({ req, res }),
       subscriptions: {
         'graphql-ws': true,
@@ -33,4 +37,4 @@ import { NotificationModule } from './notification/notification.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
