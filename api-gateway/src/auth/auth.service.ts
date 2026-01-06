@@ -84,4 +84,9 @@ export class AuthService {
       );
     }
   }
+
+  getGoogleAuthUrl(platform: 'web' | 'mobile'): string {
+    const endpoint = platform === 'web' ? 'google' : 'google/mobile';
+    return `${this.authServiceUrl}/auth/${endpoint}`;
+  }
 }

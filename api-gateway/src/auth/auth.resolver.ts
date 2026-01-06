@@ -1,6 +1,6 @@
 import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
 import { AuthService } from './auth.service';
-import { AuthResponse } from './dto/auth-response.dto';
+import { AuthResponse, GoogleAuthUrlResponse } from './dto/auth-response.dto';
 import { RegisterInput } from './dto/register.input';
 import { LoginInput } from './dto/login.input';
 import { RefreshTokenInput } from './dto/refresh-token.input';
@@ -23,6 +23,14 @@ export class AuthResolver {
     @Mutation(() => AuthResponse)
     async refreshToken(@Args('input') input: RefreshTokenInput): Promise<AuthResponse> {
         return this.authService.refreshToken(input.refreshToken);
+    }
+
+    @Query(() => GoogleAuthUrlResponse)
+    async getGoogleAuthUrl(
+        @Args('platform', { type: () => String, defaultValue: 'web' }) platform: 'web' | 'mobile'
+    ): Promise<GoogleAuthUrlResponse> {
+        const url = this.authService.getGoogleAuthUrl(platform);
+        return { url };
     }
 
     @Query(() => String)

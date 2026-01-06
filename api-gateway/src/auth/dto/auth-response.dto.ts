@@ -10,6 +10,18 @@ export class UserPayload {
 
   @Field()
   username: string;
+
+  @Field({ nullable: true })
+  firstName?: string;
+
+  @Field({ nullable: true })
+  lastName?: string;
+
+  @Field({ nullable: true })
+  picture?: string;
+
+  @Field({ nullable: true })
+  provider?: string;
 }
 
 @ObjectType()
@@ -22,4 +34,10 @@ export class AuthResponse {
 
   @Field(() => UserPayload)
   user: UserPayload;
+}
+
+@ObjectType()
+export class GoogleAuthUrlResponse {
+  @Field()
+  url: string;
 }

@@ -7,6 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
+import { GoogleProfile } from './strategies/google.strategy';
 
 @Injectable()
 export class AuthService {
@@ -115,6 +116,39 @@ export class AuthService {
             userId: user.id,
             email: user.email,
             username: user.username,
+        };
+    }
+
+    async googleLogin(googleProfile: GoogleProfile) {
+        // Extract Google user ID from the profile
+        const providerId = (googleProfile as any).googleId || googleProfile.email;
+
+        const user = await this.usersService.createOrUpdateGoogleUser({
+            email: googleProfile.email,
+            firstName: googleProfile.firstName,
+            lastName: googleProfile.lastName,
+            picture: googleProfile.picture,
+            providerId,
+        });
+
+        const tokens = await this.generateTokens(user.id, user.email, user.username);
+        await this.usersService.updateRefreshToken(
+            user.id,
+            await bcrypt.hash(tokens.refreshToken, 10),
+        );
+
+        return {
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
+            user: {
+                userId: user.id,
+                email: user.email,
+                username: user.username,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                picture: user.picture,
+                provider: 'google',
+            },
         };
     }
 

@@ -60,12 +60,15 @@ This project implements a microservices architecture following Event-Driven Desi
   - WebSocket subscriptions for real-time updates
 
 ### 2. Auth Service (Port 3001)
-- **Technology**: NestJS + TypeORM + PostgreSQL + JWT
+- **Technology**: NestJS + TypeORM + PostgreSQL + JWT + OAuth 2.0
 - **Responsibilities**:
   - User registration and login
+  - **Google OAuth authentication (Web & Mobile)**
   - JWT token generation and validation
   - Refresh token management
   - Password hashing with bcrypt
+
+**🆕 OAuth Support:** Now includes Google OAuth 2.0 for both web and mobile platforms. See [Google OAuth Setup Guide](GOOGLE_OAUTH_SETUP.md) for configuration.
 
 ### 3. Chat Service (Port 3002)
 - **Technology**: NestJS + TypeORM + PostgreSQL + Kafka
@@ -385,6 +388,7 @@ docker exec -it chat-db psql -U chat_user -d chat_db
 
 ## 🚧 Roadmap
 
+- [x] ✅ Google OAuth 2.0 authentication (Web & Mobile)
 - [ ] Complete Chat Service with Kafka integration
 - [ ] Complete Presence Service with Redis
 - [ ] Complete Notification Service with Kafka consumers
@@ -395,6 +399,7 @@ docker exec -it chat-db psql -U chat_user -d chat_db
 - [ ] Add unit and e2e tests
 - [ ] Add Docker Compose for services
 - [ ] Add API documentation with Swagger
+- [ ] Add more OAuth providers (Facebook, GitHub, etc.)
 - [ ] Implement rate limiting
 - [ ] Add monitoring with Prometheus & Grafana
 
@@ -422,7 +427,26 @@ JWT_SECRET=your-secret-key
 JWT_EXPIRATION=1h
 REFRESH_TOKEN_SECRET=your-refresh-secret
 REFRESH_TOKEN_EXPIRATION=7d
+
+# Google OAuth (See GOOGLE_OAUTH_SETUP.md for details)
+GOOGLE_CLIENT_ID=your-web-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-web-client-secret
+GOOGLE_CALLBACK_URL=http://localhost:3001/auth/google/callback
+GOOGLE_MOBILE_CLIENT_ID=your-mobile-client-id.apps.googleusercontent.com
+GOOGLE_MOBILE_CLIENT_SECRET=your-mobile-client-secret
+GOOGLE_MOBILE_CALLBACK_URL=http://localhost:3001/auth/google/mobile/callback
+WEB_APP_URL=http://localhost:3000
+MOBILE_APP_SCHEME=myapp
 ```
+
+## 📚 Additional Documentation
+
+- [Google OAuth Setup Guide](GOOGLE_OAUTH_SETUP.md) - Complete guide for Google OAuth 2.0 integration
+- [Quick Start - Google OAuth](GOOGLE_OAUTH_QUICKSTART.md) - Quick reference for OAuth setup
+- [Architecture Documentation](ARCHITECTURE.md) - Detailed architecture overview
+- [Project Status](PROJECT_STATUS.md) - Current implementation status
+- [Troubleshooting Guide](TROUBLESHOOTING.md) - Common issues and solutions
+
 
 ## 🤝 Contributing
 
