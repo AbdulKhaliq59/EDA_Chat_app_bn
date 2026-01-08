@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { HttpModule } from '@nestjs/axios';
 import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -11,6 +12,7 @@ import { GoogleMobileStrategy } from './strategies/google-mobile.strategy';
 
 @Module({
   imports: [
+    HttpModule,
     UsersModule,
     PassportModule,
     JwtModule.registerAsync({

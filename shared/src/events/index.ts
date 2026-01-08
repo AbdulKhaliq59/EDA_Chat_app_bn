@@ -6,6 +6,10 @@ export const KAFKA_TOPICS = {
   PRESENCE_UPDATED: 'presence.updated',
   USER_REGISTERED: 'user.registered',
   NOTIFICATION_CREATED: 'notification.created',
+  MEDIA_UPLOADED: 'media.uploaded',
+  MEDIA_DELETED: 'media.deleted',
+  PROFILE_UPDATED: 'profile.updated',
+  PROFILE_PICTURE_UPDATED: 'profile.picture.updated',
 } as const;
 
 // Base Event Interface
@@ -82,6 +86,68 @@ export interface NotificationCreatedEvent extends BaseEvent {
   };
 }
 
+// Media Events
+export interface MediaUploadedEvent extends BaseEvent {
+  eventType: 'media.uploaded';
+  data: {
+    mediaAssetId: string;
+    publicId: string;
+    type: string;
+    url: string;
+    secureUrl: string;
+    uploadedBy: string;
+    metadata: {
+      fileSize: number;
+      mimeType: string;
+      originalName: string;
+      width?: number;
+      height?: number;
+      duration?: number;
+    };
+    createdAt: Date;
+  };
+}
+
+export interface MediaDeletedEvent extends BaseEvent {
+  eventType: 'media.deleted';
+  data: {
+    mediaAssetId: string;
+    publicId: string;
+    deletedBy: string;
+    deletedAt: Date;
+  };
+}
+
+// Profile Events
+export interface ProfileUpdatedEvent extends BaseEvent {
+  eventType: 'profile.updated';
+  data: {
+    profileId: string;
+    userId: string;
+    firstName?: string;
+    lastName?: string;
+    bio?: string;
+    phoneNumber?: string;
+    location?: string;
+    website?: string;
+    updatedAt: Date;
+  };
+}
+
+export interface ProfilePictureUpdatedEvent extends BaseEvent {
+  eventType: 'profile.picture.updated';
+  data: {
+    profileId: string;
+    userId: string;
+    mediaAssetId: string;
+    publicId: string;
+    url: string;
+    secureUrl: string;
+    previousMediaAssetId?: string;
+    updatedAt: Date;
+  };
+}
+
 // Union type for all events
 export type KafkaEvent =
   | MessageCreatedEvent
@@ -89,4 +155,8 @@ export type KafkaEvent =
   | MessageDeletedEvent
   | PresenceUpdatedEvent
   | UserRegisteredEvent
-  | NotificationCreatedEvent;
+  | NotificationCreatedEvent
+  | MediaUploadedEvent
+  | MediaDeletedEvent
+  | ProfileUpdatedEvent
+  | ProfilePictureUpdatedEvent;

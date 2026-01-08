@@ -12,7 +12,7 @@ export class AuthResolver {
 
     @Mutation(() => AuthResponse)
     async register(@Args('input') input: RegisterInput): Promise<AuthResponse> {
-        return this.authService.register(input.email, input.username, input.password);
+        return this.authService.register(input.email, input.username, input.password, input.firstName, input.lastName);
     }
 
     @Mutation(() => AuthResponse)

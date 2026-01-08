@@ -134,3 +134,7 @@ export interface PaginatedResponse<T> {
   limit: number;
   totalPages: number;
 }
+
+// Export media and profile types
+export * from './media.types';
+export * from './profile.types';

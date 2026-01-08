@@ -1,6 +1,15 @@
 # Event-Driven Architecture Chat Microservice
 
-A scalable, event-driven chat application built with NestJS microservices, Kafka, Redis, PostgreSQL, and GraphQL.
+A scalable, event-driven chat application built with NestJS microservices, Kafka, Redis, PostgreSQL, and GraphQL. **Now with Profile Management and Rich Media Support!**
+
+## ✅ Project Status: **ENHANCED & COMPLETE**
+
+All microservices are fully implemented with event-driven architecture. Latest enhancements include:
+- ✨ **Profile Management Service** - User profiles with media uploads via Cloudinary
+- ✨ **Advanced Messaging** - Rich media support (images, videos, audio, documents, voice messages)
+- ✨ **Cloudinary Integration** - Secure cloud storage and media delivery
+
+See [IMPLEMENTATION_ADDITIONS.md](IMPLEMENTATION_ADDITIONS.md) for new features and [INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md) for setup.
 
 ## 🏗️ Architecture Overview
 
@@ -11,43 +20,36 @@ This project implements a microservices architecture following Event-Driven Desi
 │   Client    │
 └──────┬──────┘
        │
-       │ GraphQL
+       │ GraphQL + REST
        ▼
 ┌─────────────────────┐
 │  API Gateway        │ (Port 3000)
 │  (GraphQL)          │
 └──────┬──────────────┘
        │
-       ├──────────────────┬────────────────┬────────────────┐
-       ▼                  ▼                ▼                ▼
-┌─────────────┐  ┌─────────────┐  ┌──────────────┐ ┌──────────────────┐
-│Auth Service │  │Chat Service │  │Presence      │ │Notification      │
-│  (Port 3001)│  │  (Port 3002)│  │Service       │ │Service           │
-│             │  │             │  │  (Port 3003) │ │  (Port 3004)     │
-└──────┬──────┘  └──────┬──────┘  └──────┬───────┘ └────────┬─────────┘
-       │                │                │                   │
-       ▼                ▼                ▼                   ▼
-┌─────────────┐  ┌─────────────┐  ┌──────────────┐ ┌──────────────────┐
-│  Auth DB    │  │  Chat DB    │  │Presence DB   │ │Notification DB   │
-│ PostgreSQL  │  │ PostgreSQL  │  │PostgreSQL    │ │PostgreSQL        │
-└─────────────┘  └─────────────┘  └──────────────┘ └──────────────────┘
-                        │
-                        └─────────► Kafka ◄──────────────┘
-                                      │
-                                      ├─► Schema Registry
-                                      │
-                                      └─► Redis (Cache & Presence)
+       ├──────────────┬────────────────┬────────────────┬──────────────┐
+       ▼              ▼                ▼                ▼              ▼
+┌─────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────────┐
+│Auth Service │ │Chat Service  │ │Presence      │ │Notification │ │Profile Service  │
+│ (Port 3001) │ │(Port 3002)   │ │Service       │ │Service       │ │(Port 3004) 🆕   │
+│             │ │🔄 Enhanced   │ │(Port 3003)   │ │(Port 3005)   │ │                  │
+└──────┬──────┘ └──────┬───────┘ └──────┬───────┘ └──────┬──────┘ └────────┬─────────┘
+       │                │                │                │                │
+       ▼                ▼                ▼                ▼                ▼
+┌─────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────────┐
+│  Auth DB    │ │  Chat DB     │ │Presence DB   │ │Notification │ │Profile DB        │
+│ PostgreSQL  │ │ PostgreSQL   │ │PostgreSQL    │ │  DB          │ │PostgreSQL 🆕    │
+└─────────────┘ └──────┬───────┘ │(+ Attachments)                 │ │(+ Media Assets)  │
+                       │          └──────┬───────┘ │PostgreSQL    │ └──────────────────┘
+                       │                │         └──────────────┘
+                       │                │                │
+                       └────────────────┴────────────────┘
+                              ▼
+                          Kafka 📡
+                              │
+                              └─► Redis 💾 (Presence Cache)
+                                   Cloudinary ☁️ (Media Storage 🆕)
 ```
-
-## 📋 Sequence Flow
-
-1. **Authentication**: Client sends GraphQL request with JWT → API Gateway validates token via Auth Service
-2. **Message Creation**: Client sends message → Chat Service persists to DB
-3. **Event Publication**: Chat Service fetches schema from Registry → Publishes event to Kafka
-4. **Presence Update**: Presence Service updates user status in Redis
-5. **Event Consumption**: Notification Service consumes Kafka events
-6. **Notification Storage**: Notification Service stores in DB and caches in Redis
-7. **Client Notification**: Real-time push via WebSocket
 
 ## 🚀 Services
 
@@ -71,12 +73,16 @@ This project implements a microservices architecture following Event-Driven Desi
 **🆕 OAuth Support:** Now includes Google OAuth 2.0 for both web and mobile platforms. See [Google OAuth Setup Guide](GOOGLE_OAUTH_SETUP.md) for configuration.
 
 ### 3. Chat Service (Port 3002)
-- **Technology**: NestJS + TypeORM + PostgreSQL + Kafka
+- **Technology**: NestJS + TypeORM + PostgreSQL + Kafka + Cloudinary
 - **Responsibilities**:
   - Message creation and retrieval
   - Conversation management
+  - **🆕 Rich media attachments** (images, videos, audio, documents, voice messages)
+  - **🆕 Cloudinary integration** for media storage
   - Publish message events to Kafka
   - Schema validation with Schema Registry
+
+**New Features:** Send messages with multiple attachments, voice messages, and more! See [IMPLEMENTATION_ADDITIONS.md](IMPLEMENTATION_ADDITIONS.md).
 
 ### 4. Presence Service (Port 3003)
 - **Technology**: NestJS + Redis + TypeORM + PostgreSQL
@@ -85,7 +91,7 @@ This project implements a microservices architecture following Event-Driven Desi
   - Real-time presence updates
   - Redis caching for fast lookups
 
-### 5. Notification Service (Port 3004)
+### 5. Notification Service (Port 3005)
 - **Technology**: NestJS + Kafka + Redis + TypeORM + PostgreSQL
 - **Responsibilities**:
   - Consume Kafka message events
@@ -93,7 +99,42 @@ This project implements a microservices architecture following Event-Driven Desi
   - Fan-out notifications via Redis
   - WebSocket push notifications
 
-## 🛠️ Technology Stack
+### 6. Profile Service (Port 3004) 🆕
+- **Technology**: NestJS + TypeORM + PostgreSQL + Cloudinary + Kafka
+- **Responsibilities**:
+  - **User profile management** (name, bio, location, etc.)
+  - **Profile picture uploads** with Cloudinary
+  - **Cover image uploads**
+  - **Media asset tracking** and cleanup
+  - **Event publishing** for profile updates
+  - Secure file handling with validation
+
+**New Service:** Complete profile management with picture uploads. See [profile-service/README.md](profile-service/README.md).
+
+## 🆕 New Features
+
+### Profile Management
+- ✅ Create and manage user profiles
+- ✅ Upload profile pictures via Cloudinary
+- ✅ Upload cover images
+- ✅ Profile information (name, bio, location, website, phone, birthdate)
+- ✅ Event-driven profile updates
+- ✅ Secure image upload with validation
+
+### Advanced Messaging
+- ✅ Send messages with multiple attachments
+- ✅ Support for images, videos, audio, documents, voice messages
+- ✅ Media-only messages (text optional)
+- ✅ Secure file uploads with Cloudinary
+- ✅ Attachment metadata tracking (size, dimensions, duration)
+- ✅ Backward compatible with text-only messages
+
+### Cloudinary Integration
+- ✅ Secure cloud storage for all media
+- ✅ Automatic CDN delivery
+- ✅ Automatic deletion of old media
+- ✅ Token-based secure URLs
+- ✅ Metadata tracking for images/videos
 
 - **Framework**: NestJS
 - **API**: GraphQL (Apollo Server)

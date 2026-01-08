@@ -2,25 +2,39 @@ import {
     Injectable,
     UnauthorizedException,
     ConflictException,
+    HttpException,
+    Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 import * as bcrypt from 'bcrypt';
 import { GoogleProfile } from './strategies/google.strategy';
 
 @Injectable()
 export class AuthService {
+    private readonly logger = new Logger(AuthService.name);
+
     constructor(
         private usersService: UsersService,
         private jwtService: JwtService,
         private configService: ConfigService,
+        private httpService: HttpService,
     ) { }
 
-    async register(email: string, username: string, password: string) {
-        const existingUser = await this.usersService.findByEmail(email);
-        if (existingUser) {
-            throw new ConflictException('User with this email already exists');
+    async register(email: string, username: string, password: string, firstName?: string, lastName?: string) {
+        // Check if email already exists
+        const existingUserByEmail = await this.usersService.findByEmail(email);
+        if (existingUserByEmail) {
+            throw new ConflictException('Email already registered. Please use a different email or login.');
+        }
+
+        // Check if username already exists
+        const existingUserByUsername = await this.usersService.findByUsername(username);
+        if (existingUserByUsername) {
+            throw new ConflictException('Username already taken. Please choose a different username.');
         }
 
         const user = await this.usersService.create(email, username, password);
@@ -31,6 +45,14 @@ export class AuthService {
             await bcrypt.hash(tokens.refreshToken, 10),
         );
 
+        // Create profile automatically
+        try {
+            await this.createUserProfile(user.id, firstName, lastName);
+        } catch (error) {
+            this.logger.warn(`Failed to create profile for user ${user.id}`, error);
+            // Don't fail registration if profile creation fails
+        }
+
         return {
             accessToken: tokens.accessToken,
             refreshToken: tokens.refreshToken,
@@ -38,6 +60,8 @@ export class AuthService {
                 userId: user.id,
                 email: user.email,
                 username: user.username,
+                firstName,
+                lastName,
             },
         };
     }
@@ -169,5 +193,47 @@ export class AuthService {
         ]);
 
         return { accessToken, refreshToken };
+    }
+
+    /**
+     * Create a user profile in profile service
+     */
+    private async createUserProfile(userId: string, firstName?: string, lastName?: string) {
+        try {
+            const profileServiceUrl = this.configService.get<string>('PROFILE_SERVICE_URL') || 'http://localhost:3004';
+
+            const internalToken = await this.jwtService.signAsync(
+                { sub: userId },
+                {
+                    secret: this.configService.get<string>('JWT_SECRET') || 'dev-secret-key',
+                    expiresIn: '5m', // Short-lived token for internal use
+                },
+            );
+
+
+            const response = await firstValueFrom(
+                this.httpService.post(
+                    `${profileServiceUrl}/profiles`,
+                    {
+                        firstName: firstName || '',
+                        lastName: lastName || '',
+                        bio: '',
+                    },
+                    {
+                        headers: {
+                            Authorization: `Bearer ${internalToken}`,
+                        },
+                    },
+                ),
+            );
+
+            this.logger.log(`Profile created successfully for user ${userId}`);
+        } catch (error) {
+            this.logger.error(`Failed to create profile for user ${userId}: ${error.message}`);
+            if (error.response?.data) {
+                this.logger.error(`Profile service response: ${JSON.stringify(error.response.data)}`);
+            }
+            // Don't throw - profile creation failure shouldn't block user registration
+        }
     }
 }

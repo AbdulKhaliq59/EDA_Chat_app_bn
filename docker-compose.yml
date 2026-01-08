@@ -69,7 +69,7 @@ services:
       POSTGRES_USER: auth_user
       POSTGRES_PASSWORD: auth_password
     ports:
-      - "5432:5432"
+      - "5440:5432"
     volumes:
       - auth-db-data:/var/lib/postgresql/data
     networks:
@@ -120,12 +120,28 @@ services:
     networks:
       - eda-chat-network
 
+  # PostgreSQL for Profile Service
+  profile-db:
+    image: postgres:15-alpine
+    container_name: profile-db
+    environment:
+      POSTGRES_DB: profile_db
+      POSTGRES_USER: profile_user
+      POSTGRES_PASSWORD: profile_password
+    ports:
+      - "5436:5432"
+    volumes:
+      - profile-db-data:/var/lib/postgresql/data
+    networks:
+      - eda-chat-network
+
 volumes:
   redis-data:
   auth-db-data:
   chat-db-data:
   presence-db-data:
   notification-db-data:
+  profile-db-data:
 
 networks:
   eda-chat-network:

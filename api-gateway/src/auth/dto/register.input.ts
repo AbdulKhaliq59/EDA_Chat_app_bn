@@ -16,4 +16,12 @@ export class RegisterInput {
   @IsString()
   @MinLength(6)
   password: string;
+
+  @Field({ nullable: true })
+  @IsString()
+  firstName?: string;
+
+  @Field({ nullable: true })
+  @IsString()
+  lastName?: string;
 }

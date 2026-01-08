@@ -8,6 +8,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { ChatModule } from './chat/chat.module';
+import { ProfileModule } from './profile/profile.module';
 import { PresenceModule } from './presence/presence.module';
 import { NotificationModule } from './notification/notification.module';
 
@@ -31,6 +32,7 @@ import { NotificationModule } from './notification/notification.module';
     }),
     AuthModule,
     ChatModule,
+    ProfileModule,
     PresenceModule,
     NotificationModule,
   ],

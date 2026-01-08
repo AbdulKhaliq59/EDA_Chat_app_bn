@@ -14,13 +14,15 @@ export class AuthService {
     this.authServiceUrl = this.configService.get<string>('AUTH_SERVICE_URL') || 'http://localhost:3001';
   }
 
-  async register(email: string, username: string, password: string) {
+  async register(email: string, username: string, password: string, firstName?: string, lastName?: string) {
     try {
       const response = await firstValueFrom(
         this.httpService.post(`${this.authServiceUrl}/auth/register`, {
           email,
           username,
           password,
+          firstName,
+          lastName,
         }),
       );
       return response.data;
